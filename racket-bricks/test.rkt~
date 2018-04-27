@@ -1,0 +1,26 @@
+#lang typed/racket
+
+;Make a tutorial from this...
+
+(require typed/pict)
+
+
+(define d1 '(above (circle 20 "solid" "red")
+                   (circle 20 "solid" "blue")))
+
+(define d2 '(circle 20 "solid" "red"))
+
+
+(: leaf? (-> (Listof Any) Boolean))
+(define (leaf? d)
+  (andmap list? d))
+
+(: leaf->bricks (-> (Listof Any) pict))
+(define (leaf->bricks d)
+  (text "TODO"))
+
+(: data->bricks (-> (Listof Any) pict))
+(define (data->bricks d)
+  (if (leaf? d)
+      (leaf->bricks d)
+      (text "TODO")))

@@ -1,0 +1,28 @@
+#lang racket
+
+
+(module reader syntax/module-reader
+  racket-bricks/racket-bricks-module
+  #:wrapper1 (lambda (t)
+               (define exp-t (t))
+
+               (require (for-syntax 2htdp/image))
+               (define number-of-image-snips
+                 (length exp-t #;(filter image? t)))
+
+               (define (replace-easter-eggs syn)
+                 (define thing (syntax->datum syn)) 
+                 (if (and (string? thing) 
+                          (string=? thing "easter-egg"))
+                     "YOU FOUND AN EASTER EGG"
+                     thing))
+
+               (define (replace-easter-eggs2 syn)
+                 (define thing (syntax->datum syn)) 
+                 (if (image? thing) 
+                     (circle 40 "solid" "green") 
+                     thing))
+               
+               (append (map replace-easter-eggs2 exp-t)
+                       `((displayln (string-append "I have " 
+                                                   ,(number->string number-of-image-snips)))))))

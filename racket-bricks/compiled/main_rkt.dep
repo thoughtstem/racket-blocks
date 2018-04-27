@@ -1,0 +1,1 @@
+("6.9" ("2473cf2d3132bb05d2db96dcc510849aa5797d20" . "69be46fb81ee5896a5ebada7ca0630f622b7d8a0") (collects #"2htdp" #"image.rkt") (collects #"circle-snip" #"main.rkt") (collects #"racket" #"class.rkt") (collects #"racket" #"main.rkt") (collects #"racket" #"runtime-config.rkt") (collects #"syntax" #"module-reader.rkt"))
