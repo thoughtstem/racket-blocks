@@ -1,4 +1,4 @@
 #lang info
 (define version "0.0.1")
 
-;(define scribblings '(("racket-bricks.scrbl" ())))
+(define deps '("game-engine" "game-engine-demos-common"))
