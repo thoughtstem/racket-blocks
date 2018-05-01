@@ -75,7 +75,9 @@
   (check-equal? '(b:a: c)  (move-in 0 '(a b c)))
   (check-equal? '(a b c)   (move-in 2 '(a b c)))
   
-  (check-equal? '(b:CURSOR: c) (move-in 0 '(CURSOR b c))))
+  (check-equal? '(b:CURSOR: c) (move-in 0 '(CURSOR b c)))
+
+  )
 
 (define (insert-at l p t)
   (append (take l p)
@@ -310,14 +312,15 @@
 (define (insert-cursor token (cursor "CURSOR"))
   (define string-with-cursor (string-append (format "~a" token)
                                             (string-append ":" cursor ":")))
-  (if (string? token)
-      string-with-cursor
-      (string->symbol string-with-cursor)))
+  (cond [(string? token) string-with-cursor]
+        [(eq? token 'token) ':CURSOR:]
+        [else (string->symbol string-with-cursor)]))
 
 (module+ test
   (check-equal? 'ac:CURSOR:       (insert-cursor 'ac))  
   (check-equal? '10:CURSOR:       (insert-cursor 10))
-  (check-equal? "100:CURSOR:"    (insert-cursor "100")))
+  (check-equal? "100:CURSOR:"    (insert-cursor "100"))
+  (check-equal? ':CURSOR:    (insert-cursor 'token)))
 
 
 (define (move-cursor-up p1)
