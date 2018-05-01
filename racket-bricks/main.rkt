@@ -27,5 +27,4 @@
                (map replace-easter-eggs2 exp-t))
    
   (require 2htdp/image
-           racket/class
-           circle-snip))
+           racket/class))
