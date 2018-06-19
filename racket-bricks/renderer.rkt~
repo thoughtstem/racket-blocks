@@ -1,6 +1,9 @@
 #lang racket
 
+(provide render-bricks)
+
 (require 2htdp/image)
+(require "./model.rkt")
 
 (define (render-bricks  ( PADDING 20)
                         ( SLOT-COLOR (color 220 220 220))
@@ -159,3 +162,48 @@
           [else (apply (make-safe (curry  above/align "left")) (map data->bricks d))]))
 
   data->bricks)
+
+(module+ test
+  (define d1 '(beside
+               CURSOR
+               (triangle 20 "solid" "green")
+               (above (circle 20 "solid" "red")
+                      (circle 20 "solid" "blue"))))
+
+  (define d2 '(circle 20 "solid" "red"))
+
+  (define d3 `(define my-thing
+                ,d1))
+
+
+  (define d4 '(define bg-entity
+                (sprite->entity (space-bg-sprite WIDTH HEIGHT 100)
+                                #:name
+                                "bg"
+                                #:position
+                                (posn 0 0)
+                                #:components
+                                (static))))
+
+
+  ((render-bricks) (insert-before-cursor d3 'test))
+  ((render-bricks) (move-cursor-up
+                    (insert-before-cursor d3 'test)))
+  ((render-bricks) (move-cursor-in
+                    (move-cursor-down
+                     (insert-before-cursor d3 'test))))
+  ((render-bricks) '(test ()))
+  ((render-bricks) '(test (())))
+  ((render-bricks) '(test ((()))))
+
+  ((render-bricks) (move-cursor-in
+                    (move-cursor-up
+                     (insert-before-cursor d3 'test))))
+  
+  ((render-bricks) (add-letter-before-cursor
+                    (move-cursor-in
+                     (move-cursor-up
+                      (insert-before-cursor d3 'test)))
+                    "a"))
+
+  ((render-bricks) d3))

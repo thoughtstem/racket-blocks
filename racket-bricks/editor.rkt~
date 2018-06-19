@@ -215,9 +215,12 @@
 
     
   (start-game (code-entity d1)
-              bg-entity))
+              bg-entity)
+
+  (extract-cursor-completely d1)) ;Return the code after editing...
 
 (module+ test
-  (game-editor '(define my-fun CURSOR)))
+  (game-editor
+   '(CURSOR i am code)))
 
 

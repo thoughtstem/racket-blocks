@@ -1,1 +1,0 @@
-("6.9" ("d4cdb94f1ac3a40d38e83dbd9a311291e5274448" . "95c20db3ff1ff4b3d7b82262ada703a0d88146bf") (collects #"2htdp" #"image.rkt") (collects #"racket" #"main.rkt") (collects #"racket" #"runtime-config.rkt") (collects #"racket-bricks" #"model.rkt"))
