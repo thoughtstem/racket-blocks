@@ -57,8 +57,14 @@
                 "outline"
                 BRICK-OUTLINE)))
 
-  (define LEFT-PAREN  (text "(" 20 "brown"))
-  (define RIGHT-PAREN (text ")" 20 "brown"))
+  (define LEFT-PAREN  (if (list? SHOW-PARENS?)
+                          (first SHOW-PARENS?)
+                          (text "(" 20 "brown")))
+  
+  (define RIGHT-PAREN (if (list? SHOW-PARENS?)
+                          (second SHOW-PARENS?)
+                          (text ")" 20 "brown")))
+  
   (define (ending-parens d)
     (if (= 0 d) empty-image
         (img-if SHOW-PARENS?
@@ -159,7 +165,8 @@
            (scale 0.5 CURSOR)
            (text (second split-by-cursor) 15 "black")
            (if (string? t) (text "\"" 15 "black") blank-image)))
-        (text (format "~s" t) 15 (token->color t))))
+        (if (image? t) t
+            (text (format "~s" t) 15 (token->color t)))))
 
   (define (token->slot t (color (token->slot-color t))
                          (border? #t))

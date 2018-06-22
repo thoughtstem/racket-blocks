@@ -1,9 +1,17 @@
 #lang racket
 
-(provide render-bricks)
+(provide render-bricks
+         render-text)
 
 (require 2htdp/image)
 (require "./model.rkt")
+
+;Not tail recursive... rewrite?
+(define (map-with-index f l (i 0))
+  (if (empty? l)
+      '()
+      (cons (f (first l) i)
+            (map-with-index f (rest l) (add1 i)))))
 
 (define (render-bricks  ( PADDING 20)
                         ( SLOT-COLOR (color 220 220 220))
@@ -16,9 +24,15 @@
                         ( BOOLEAN-SLOT-COLOR (color 255 199 150))
                         ( CURSOR-COLOR "red")
                         ( CONTAINER rectangle)
-                        #:cursor ( CURSOR (star PADDING "solid" CURSOR-COLOR)))
+                        #:container-padding (CONTAINER-PADDING PADDING)
+                        #:container-padding-left (CONTAINER-PADDING-LEFT PADDING)
+                        #:cursor ( CURSOR (star PADDING "solid" CURSOR-COLOR))
+                        #:show-parens? (SHOW-PARENS? #f))
 
-
+  (define (text s size color)
+    (text/font s size color
+               "modern" 'swiss 'normal 'bold #f))
+  
   ;Used to color an entire container based on the first token (e.g. (define ...))
   (define (token->container-color t)
     (cond [(eq? t 'define) FUNCTION-DEF-COLOR]
@@ -43,36 +57,59 @@
                 "outline"
                 BRICK-OUTLINE)))
 
+  (define LEFT-PAREN  (text "(" 20 "brown"))
+  (define RIGHT-PAREN (text ")" 20 "brown"))
+  (define (ending-parens d)
+    (if (= 0 d) empty-image
+        (img-if SHOW-PARENS?
+                (apply (make-safe beside)
+                       (map (thunk* RIGHT-PAREN)
+                            (range d))))))
+
+  (define (img-if b i)
+    (if b
+        i
+        empty-image))
  
-  (define (brick-container color name-image inner-image)
-    (define top (outline (rectangle (+ PADDING (image-width name-image))
-                                    PADDING #;(+ PADDING (image-height name-image))
+  (define (brick-container color name-image inner-image depth breadth total)
+
+    
+    (define top (outline (rectangle (+ CONTAINER-PADDING-LEFT  (image-width name-image))
+                                    PADDING 
                                     "solid"
                                     color)))
 
     (define bottom (outline (rectangle (/ (image-width inner-image) 2)
-                                       PADDING
+                                       CONTAINER-PADDING
                                        "solid"
-                                       color)))
+                                       color)
+                             
+                             ))
 
-    (define column (outline (rectangle PADDING
+    (define column (outline (overlay/align "right" "top"
+                             (img-if SHOW-PARENS? LEFT-PAREN
+                                     #;(beside (text (format "~a/~a" breadth total) 20 "black") LEFT-PAREN))
+                             (rectangle CONTAINER-PADDING-LEFT
                                        (+ (image-height name-image)
                                           (image-height inner-image))
                                        "solid"
-                                       color)))
+                                       color))))
 
     (define main-image (above/align "left"
                                     top
                                     (beside column (above/align "left" name-image inner-image))
                                     bottom))
 
-    (define fixer (circle (/ PADDING 2) "solid" color))
+    (define fixer (circle (/ CONTAINER-PADDING 2) "solid" color))
   
     (define top-fixed (overlay/xy
                        fixer
                        0 (+ (/ (image-height fixer) 2)
                             (- (image-height top)))
-                       main-image))
+                       (beside/align "bottom"
+                                     main-image
+                                     (img-if SHOW-PARENS? empty-image
+                                             #;(ending-parens depth)))))
 
     (define final (overlay/xy
                    fixer
@@ -105,6 +142,13 @@
          #f))
 
   (define blank-image (circle 1 "solid" "transparent"))
+
+
+  (define (token->color t)
+    (cond [(number? t) "darkgreen"]
+          [(string? t) "darkgreen"]
+          [(boolean? t) "darkgreen"]
+          [else "darkblue"]))
   
   (define (token->text t)
     (if (token-contains-cursor? t)
@@ -115,7 +159,7 @@
            (scale 0.5 CURSOR)
            (text (second split-by-cursor) 15 "black")
            (if (string? t) (text "\"" 15 "black") blank-image)))
-        (text (format "~s" t) 15 "black")))
+        (text (format "~s" t) 15 (token->color t))))
 
   (define (token->slot t (color (token->slot-color t))
                          (border? #t))
@@ -124,18 +168,28 @@
         (boxify color BRICK-OUTLINE (token->text t)
                 border?)))
 
-  (define (leaf->bricks d)
+  (define (leaf->bricks d depth breadth total)
+    
+    
     (define comb (make-safe
                   (if (member 'CURSOR d)
                       (curry above/align "left")
                       (curry beside/align "middle"))))
-    (cond [(empty? d) (boxify CONTAINER-COLOR BRICK-OUTLINE
+    
+    (define ret
+      (cond [(empty? d) (boxify CONTAINER-COLOR BRICK-OUTLINE
                               (circle PADDING "solid" "transparent"))]
           [(= 1 (length d)) (boxify (token->container-color (first d)) BRICK-OUTLINE
                                     (token->slot (first d) CONTAINER-COLOR #f))]
           [else (boxify (token->container-color (first d)) BRICK-OUTLINE
                         (comb (token->slot (first d) (token->container-color (first d)) #f)
                               (apply comb (map token->slot (rest d)))))]))
+    
+    (beside #;(text (format "~a/~a" breadth total) 20 "black")
+            (img-if SHOW-PARENS? LEFT-PAREN)
+            ret
+            (img-if SHOW-PARENS? RIGHT-PAREN))
+    )
 
 
   (define (make-safe f)
@@ -144,24 +198,72 @@
           arg
           (apply f (cons arg args)))))
 
-  (define (data->bricks d)
-    (cond [(cursor? d) CURSOR]
-          [(leaf? d) (leaf->bricks d)]
+  (define (data->bricks d (depth 0) (breadth 0) (parent #f))
+    (define total (if parent (length parent) 1))
+    (define (recurse child b)
+      (data->bricks child
+                    (add1 depth)
+                    (add1 b) ;We add one here because we recurse over (rest ...), so we account for the skipped (first ...)
+                    d))
+    
+    (define ret
+      (cond [(cursor? d) CURSOR]
+          [(leaf? d) (leaf->bricks d depth breadth total)]
           [(token? d) (token->slot d)]
           [(token? (first d))
            (let [(color (token->container-color (first d)))]
              (brick-container color
                               (token->slot (first d) color #f)
                               (apply (make-safe (curry  above/align "left"))
-                                     (map data->bricks (rest d)))))]
+                                     (map-with-index recurse (rest d)))
+                              depth
+                              breadth
+                              total))]
           [(list? d)
            (brick-container CONTAINER-COLOR
                             (rectangle PADDING 1 "solid" "transparent")
                             (apply (make-safe (curry  above/align "left"))
-                                   (map data->bricks d)))]
-          [else (apply (make-safe (curry  above/align "left")) (map data->bricks d))]))
+                                   (map-with-index recurse d))
+                            depth
+                            breadth
+                            total)]
+          [else (apply (make-safe (curry  above/align "left")) (map-with-index recurse d))]))
+
+    (beside/align "bottom"
+                  ret
+                  (img-if (and  SHOW-PARENS?
+                                parent
+                               (= (add1 breadth)
+                                   total))
+                          (above RIGHT-PAREN
+                                 (rectangle 1 (- PADDING 3) "solid" "transparent")))))
 
   data->bricks)
+
+
+
+
+
+(define (render-text)
+  (define clear (color 0 0 0 0))
+  (render-bricks 10
+                 clear
+                 clear
+                 clear
+                 
+                 clear ;(pen clear 1 "solid" "butt" "bevel")
+                 clear
+                 clear
+                 clear
+                 clear
+                 ;( CURSOR-COLOR "red")
+                 ;( CONTAINER rectangle)
+                 #:container-padding 0
+                 #:container-padding-left 20
+                 #:cursor (circle 5 "solid" "red")
+                 #:show-parens? #t
+                 ))
+
 
 (module+ test
   (define d1 '(beside
@@ -185,6 +287,15 @@
                                 #:components
                                 (static))))
 
+  (define d5
+    '(beside
+      (rotate 45
+              (above (circle 30 "solid" "red")
+                     (circle 30 "solid" "red")))
+      (circle 30 "solid" "red")
+      (above (circle 30 "solid" "red")
+             (circle 30 "solid" "red"))))
+
 
   ((render-bricks) (insert-before-cursor d3 'test))
   ((render-bricks) (move-cursor-up
@@ -206,4 +317,10 @@
                       (insert-before-cursor d3 'test)))
                     "a"))
 
-  ((render-bricks) d3))
+  ((render-bricks) d3)
+  
+  ((render-text) d3)
+  ((render-text) d5)
+  )
+
+
