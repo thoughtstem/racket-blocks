@@ -1,4 +1,7 @@
 #lang info
 (define version "0.0.1")
 
-(define deps '("game-engine" "game-engine-demos-common"))
+(define deps '(
+  "https://github.com/thoughtstem/game-engine.git" 
+  "https://github.com/thoughtstem/game-engine-demos.git?path=game-engine-demos-common"
+))
